@@ -40,8 +40,28 @@ app.get('*', (req, res, next) => {
 const PORT = process.env.PORT || 3000
 
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
+    .then(async () => {
         console.log('database connected')
+
+        // Auto-create a default admin account on first run (safe: only runs if no admin exists yet)
+        try {
+            const User = require('./model/user.model')
+            const bcrypt = require('bcryptjs')
+            const existingAdmin = await User.findOne({ role: { $in: ['admin', 'super'] } })
+            if (!existingAdmin) {
+                const hashedPassword = await bcrypt.hash('123456', 10)
+                await User.create({
+                    username: 'admin',
+                    email: 'admin@gmail.com',
+                    password: hashedPassword,
+                    role: 'super'
+                })
+                console.log('✅ Default admin created: admin@gmail.com / 123456 (please change password after login)')
+            }
+        } catch (seedError) {
+            console.error('Admin auto-seed failed:', seedError.message)
+        }
+
         app.listen(PORT, () => {
             console.log(`server running at http://localhost:${PORT}`)
         })
