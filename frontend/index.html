@@ -233,6 +233,7 @@ function renderNav() {
     { id: 'orders', label: '📋 កម្មង់ទាំងអស់', ownerOnly: false },
     { id: 'menu', label: '🍜 ម៉ឺនុយ', ownerOnly: false },
     { id: 'category', label: '🏷️ ប្រភេទ', ownerOnly: true },
+    { id: 'staff', label: '👥 បុគ្គលិក', ownerOnly: true },
   ];
   const nav = document.getElementById('navBar');
   nav.innerHTML = '';
@@ -256,6 +257,7 @@ function goTo(tab) {
   else if (tab === 'orders') renderOrdersList();
   else if (tab === 'menu') renderMenu();
   else if (tab === 'category') renderCategory();
+  else if (tab === 'staff') renderStaff();
 }
 
 // ---------- Dashboard ----------
@@ -562,6 +564,74 @@ async function setOrderStatus(id, status) {
   try {
     await api(`/order/${id}/status`, { method: 'PATCH', body: { status } });
     renderOrdersList();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// ---------- Staff management ----------
+async function renderStaff() {
+  const main = document.getElementById('mainContent');
+  try {
+    const res = await api('/user');
+    const users = res.data;
+    main.innerHTML = `
+      <div class="card">
+        <h3>➕ បន្ថែមបុគ្គលិកថ្មី</h3>
+        <p style="color: var(--muted); font-size: 13px;">បុគ្គលិកថ្មីនឹងមាន role "user" ស្វ័យប្រវត្តិ — មិនអាចមើល "សរុបប្រចាំថ្ងៃ" ឬគ្រប់គ្រងបុគ្គលិកផ្សេងទៀតបានទេ។</p>
+        <div class="form-row">
+          <input id="newStaffName" placeholder="ឈ្មោះ" />
+          <input id="newStaffEmail" placeholder="Email" type="email" />
+          <input id="newStaffPassword" placeholder="Password" type="text" />
+          <button class="btn" onclick="addStaff()">បន្ថែម</button>
+        </div>
+        <div id="staffMsg"></div>
+      </div>
+      <div class="card">
+        <h3>👥 អ្នកប្រើប្រាស់ទាំងអស់</h3>
+        <table>
+          <thead><tr><th>ឈ្មោះ</th><th>Email</th><th>តួនាទី</th><th></th></tr></thead>
+          <tbody>
+            ${users.map(u => `
+              <tr>
+                <td>${u.username}</td>
+                <td>${u.email}</td>
+                <td>${u.role === 'user' ? 'បុគ្គលិក' : 'ថៅកែ'}</td>
+                <td>${u.role === 'user' ? `<button class="btn danger" onclick="deleteStaff('${u._id}')">លុប</button>` : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    main.innerHTML = `<div class="card error-msg">${e.message}</div>`;
+  }
+}
+
+async function addStaff() {
+  const username = document.getElementById('newStaffName').value;
+  const email = document.getElementById('newStaffEmail').value;
+  const password = document.getElementById('newStaffPassword').value;
+  const msgEl = document.getElementById('staffMsg');
+  if (!username || !email || !password) {
+    msgEl.innerHTML = '<div class="error-msg">សូមបំពេញគ្រប់ប្រអប់</div>';
+    return;
+  }
+  try {
+    await api('/user', { method: 'POST', body: { username, email, password, role: 'user' } });
+    msgEl.innerHTML = '<div class="success-msg">បន្ថែមជោគជ័យ!</div>';
+    renderStaff();
+  } catch (e) {
+    msgEl.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+async function deleteStaff(id) {
+  if (!confirm('លុបបុគ្គលិកនេះ?')) return;
+  try {
+    await api('/user/' + id, { method: 'DELETE' });
+    renderStaff();
   } catch (e) {
     alert(e.message);
   }
