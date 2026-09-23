@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ប្រព័ន្ធភោជនីយដ្ឋាន</title>
+<style>
+  :root {
+    --bg: #f4f5f7;
+    --card: #ffffff;
+    --primary: #d9480f;
+    --primary-dark: #b8380a;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --green: #16a34a;
+    --red: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Khmer OS', 'Noto Sans Khmer', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  #userInfo { font-size: 13px; opacity: 0.9; }
+  #logoutBtn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: 10px;
+  }
+  nav {
+    display: flex;
+    gap: 4px;
+    background: white;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  nav button {
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  nav button.active {
+    background: var(--primary);
+    color: white;
+  }
+  main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .stat-box { background: #fff7ed; border-radius: 10px; padding: 16px; text-align: center; }
+  .stat-box .value { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-box .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
+  th { color: var(--muted); font-weight: 600; }
+  input, select, button.btn {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input, select { width: 100%; }
+  button.btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.btn:hover { background: var(--primary-dark); }
+  button.btn.secondary { background: #e5e7eb; color: var(--text); }
+  button.btn.danger { background: var(--red); }
+  .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-row > * { flex: 1; min-width: 140px; }
+  #loginScreen {
+    max-width: 380px;
+    margin: 80px auto;
+  }
+  #loginScreen h2 { text-align: center; }
+  .hidden { display: none !important; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge.pending { background: #fef3c7; color: #92400e; }
+  .badge.confirmed { background: #dbeafe; color: #1e40af; }
+  .badge.completed { background: #dcfce7; color: #166534; }
+  .badge.cancelled { background: #fee2e2; color: #991b1b; }
+  .error-msg { color: var(--red); font-size: 13px; margin-top: 8px; }
+  .success-msg { color: var(--green); font-size: 13px; margin-top: 8px; }
+  .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .menu-item-card { border: 1px solid var(--border); border-radius: 10px; padding: 12px; cursor: pointer; transition: 0.15s; }
+  .menu-item-card:hover { border-color: var(--primary); background: #fff7ed; }
+  .api-config { font-size: 12px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="card">
+    <h2>🍽️ ប្រព័ន្ធភោជនីយដ្ឋាន</h2>
+    <div class="form-row" style="flex-direction: column;">
+      <input id="apiUrl" placeholder="API URL" value="http://localhost:3000/api" />
+    </div>
+    <div class="form-row" style="flex-direction: column;">
+      <input id="loginEmail" placeholder="Email" type="email" />
+      <input id="loginPassword" placeholder="Password" type="password" />
+    </div>
+    <button class="btn" style="width:100%" onclick="login()">ចូលប្រើប្រាស់</button>
+    <div id="loginError" class="error-msg"></div>
+    <p class="api-config">ត្រូវប្រាកដថា backend server កំពុង run (npm start)</p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <h1>🍽️ ប្រព័ន្ធភោជនីយដ្ឋាន</h1>
+    <div>
+      <span id="userInfo"></span>
+      <button id="logoutBtn" onclick="logout()">ចាកចេញ</button>
+    </div>
+  </header>
+
+  <nav id="navBar"></nav>
+
+  <main id="mainContent"></main>
+</div>
+
+<script>
+// When the dashboard is served BY the backend itself (recommended for deployment),
+// same-origin '/api' works automatically on any device (phone, laptop, anywhere).
+// When opened as a local file during development, it falls back to localhost.
+const defaultApiUrl = (location.protocol === 'file:')
+  ? 'http://localhost:3000/api'
+  : location.origin + '/api';
+let API_URL = localStorage.getItem('apiUrl') || defaultApiUrl;
+let TOKEN = localStorage.getItem('token') || '';
+let CURRENT_USER = JSON.parse(localStorage.getItem('user') || 'null');
+let activeTab = 'dashboard';
+let menuCache = [];
+let categoryCache = [];
+let cart = []; // { menuId, name, price, quantity }
+
+// ---------- API helper ----------
+async function api(path, options = {}) {
+  const res = await fetch(API_URL + path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(TOKEN ? { Authorization: 'Bearer ' + TOKEN } : {}),
+      ...(options.headers || {})
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || 'Request failed');
+  return data;
+}
+
+// ---------- Auth ----------
+async function login() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  API_URL = document.getElementById('apiUrl').value.trim() || API_URL;
+  localStorage.setItem('apiUrl', API_URL);
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  try {
+    const res = await api('/user/login', { method: 'POST', body: { email, password } });
+    TOKEN = res.data.token;
+    CURRENT_USER = { username: res.data.username, email: res.data.email, role: res.data.role };
+    localStorage.setItem('token', TOKEN);
+    localStorage.setItem('user', JSON.stringify(CURRENT_USER));
+    showApp();
+  } catch (e) {
+    errEl.textContent = 'ចូលប្រើប្រាស់មិនបាន: ' + e.message;
+  }
+}
+
+function logout() {
+  TOKEN = '';
+  CURRENT_USER = null;
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+function showApp() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('userInfo').textContent = `${CURRENT_USER.username} (${CURRENT_USER.role})`;
+  renderNav();
+  goTo('dashboard');
+}
+
+// ---------- Navigation ----------
+function renderNav() {
+  const isOwner = CURRENT_USER.role === 'admin' || CURRENT_USER.role === 'super';
+  const tabs = [
+    { id: 'dashboard', label: '📊 សរុបប្រចាំថ្ងៃ', ownerOnly: true },
+    { id: 'order', label: '🧾 កម្មង់ថ្មី', ownerOnly: false },
+    { id: 'orders', label: '📋 កម្មង់ទាំងអស់', ownerOnly: false },
+    { id: 'menu', label: '🍜 ម៉ឺនុយ', ownerOnly: false },
+    { id: 'category', label: '🏷️ ប្រភេទ', ownerOnly: true },
+  ];
+  const nav = document.getElementById('navBar');
+  nav.innerHTML = '';
+  tabs.forEach(t => {
+    if (t.ownerOnly && !isOwner) return;
+    const btn = document.createElement('button');
+    btn.textContent = t.label;
+    btn.className = activeTab === t.id ? 'active' : '';
+    btn.onclick = () => goTo(t.id);
+    nav.appendChild(btn);
+  });
+}
+
+function goTo(tab) {
+  activeTab = tab;
+  renderNav();
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="card">កំពុងផ្ទុក...</div>';
+  if (tab === 'dashboard') renderDashboard();
+  else if (tab === 'order') renderTakeOrder();
+  else if (tab === 'orders') renderOrdersList();
+  else if (tab === 'menu') renderMenu();
+  else if (tab === 'category') renderCategory();
+}
+
+// ---------- Dashboard ----------
+async function renderDashboard() {
+  const main = document.getElementById('mainContent');
+  try {
+    const res = await api('/report/daily');
+    const d = res.data;
+    main.innerHTML = `
+      <div class="card">
+        <h2>📊 សរុបប្រចាំថ្ងៃ — ${d.date}</h2>
+        <div class="grid">
+          <div class="stat-box">
+            <div class="value">$${d.totalRevenue.toLocaleString()}</div>
+            <div class="label">ចំណូលសរុប</div>
+          </div>
+          <div class="stat-box">
+            <div class="value">${d.totalOrders}</div>
+            <div class="label">កម្មង់សរុប</div>
+          </div>
+          ${d.itemsSoldByCategory.map(c => `
+            <div class="stat-box">
+              <div class="value">${c.quantitySold}</div>
+              <div class="label">${c.category}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h3>លក់ដាច់បំផុត</h3>
+        <table>
+          <thead><tr><th>ម្ហូប</th><th>ចំនួន</th><th>ចំណូល</th></tr></thead>
+          <tbody>
+            ${d.topItems.map(i => `<tr><td>${i.name}</td><td>${i.quantitySold}</td><td>$${i.revenue.toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3">មិនទាន់មានទិន្នន័យ</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    main.innerHTML = `<div class="card error-msg">មិនអាចផ្ទុកទិន្នន័យបាន: ${e.message}</div>`;
+  }
+}
+
+// ---------- Menu management ----------
+async function loadMenuAndCategories() {
+  const [menuRes, catRes] = await Promise.all([api('/menu'), api('/category')]);
+  menuCache = menuRes.data;
+  categoryCache = catRes.data;
+}
+
+async function renderMenu() {
+  const main = document.getElementById('mainContent');
+  const isOwner = CURRENT_USER.role === 'admin' || CURRENT_USER.role === 'super';
+  try {
+    await loadMenuAndCategories();
+    main.innerHTML = `
+      ${isOwner ? `
+      <div class="card">
+        <h3>➕ បន្ថែមម៉ឺនុយថ្មី</h3>
+        <div class="form-row">
+          <input id="newMenuName" placeholder="ឈ្មោះម្ហូប" />
+          <select id="newMenuCategory">
+            <option value="">-- ជ្រើសប្រភេទ --</option>
+            ${categoryCache.map(c => `<option value="${c._id}">${c.name}</option>`).join('')}
+          </select>
+          <input id="newMenuPrice" placeholder="តម្លៃ" type="number" step="0.01" />
+          <button class="btn" onclick="addMenuItem()">បន្ថែម</button>
+        </div>
+        <div id="menuMsg"></div>
+      </div>` : ''}
+      <div class="card">
+        <h3>🍜 ម៉ឺនុយទាំងអស់</h3>
+        <table>
+          <thead><tr><th>ឈ្មោះ</th><th>ប្រភេទ</th><th>តម្លៃ</th>${isOwner ? '<th></th>' : ''}</tr></thead>
+          <tbody>
+            ${menuCache.map(m => `
+              <tr>
+                <td>${m.name}</td>
+                <td>${m.category?.name || '-'}</td>
+                <td>$${m.price}</td>
+                ${isOwner ? `<td><button class="btn danger" onclick="deleteMenuItem('${m._id}')">លុប</button></td>` : ''}
+              </tr>
+            `).join('') || '<tr><td colspan="4">មិនទាន់មានម៉ឺនុយ</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    main.innerHTML = `<div class="card error-msg">${e.message}</div>`;
+  }
+}
+
+async function addMenuItem() {
+  const name = document.getElementById('newMenuName').value;
+  const category = document.getElementById('newMenuCategory').value;
+  const price = parseFloat(document.getElementById('newMenuPrice').value);
+  const msgEl = document.getElementById('menuMsg');
+  try {
+    await api('/menu', { method: 'POST', body: { name, category, price } });
+    msgEl.innerHTML = '<div class="success-msg">បន្ថែមជោគជ័យ!</div>';
+    renderMenu();
+  } catch (e) {
+    msgEl.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+async function deleteMenuItem(id) {
+  if (!confirm('លុបម៉ឺនុយនេះ?')) return;
+  try {
+    await api('/menu/' + id, { method: 'DELETE' });
+    renderMenu();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// ---------- Category management ----------
+async function renderCategory() {
+  const main = document.getElementById('mainContent');
+  try {
+    const res = await api('/category');
+    categoryCache = res.data;
+    main.innerHTML = `
+      <div class="card">
+        <h3>➕ បន្ថែមប្រភេទថ្មី</h3>
+        <div class="form-row">
+          <input id="newCatName" placeholder="ឧ. បាយ, គុយទាវ, កាហ្វេ" />
+          <button class="btn" onclick="addCategory()">បន្ថែម</button>
+        </div>
+        <div id="catMsg"></div>
+      </div>
+      <div class="card">
+        <h3>🏷️ ប្រភេទទាំងអស់</h3>
+        <table>
+          <thead><tr><th>ឈ្មោះ</th><th></th></tr></thead>
+          <tbody>
+            ${categoryCache.map(c => `
+              <tr><td>${c.name}</td><td><button class="btn danger" onclick="deleteCategory('${c._id}')">លុប</button></td></tr>
+            `).join('') || '<tr><td colspan="2">មិនទាន់មានប្រភេទ</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    main.innerHTML = `<div class="card error-msg">${e.message}</div>`;
+  }
+}
+
+async function addCategory() {
+  const name = document.getElementById('newCatName').value;
+  const msgEl = document.getElementById('catMsg');
+  try {
+    await api('/category', { method: 'POST', body: { name } });
+    msgEl.innerHTML = '<div class="success-msg">បន្ថែមជោគជ័យ!</div>';
+    renderCategory();
+  } catch (e) {
+    msgEl.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+async function deleteCategory(id) {
+  if (!confirm('លុបប្រភេទនេះ?')) return;
+  try {
+    await api('/category/' + id, { method: 'DELETE' });
+    renderCategory();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// ---------- Take order ----------
+async function renderTakeOrder() {
+  const main = document.getElementById('mainContent');
+  try {
+    await loadMenuAndCategories();
+    main.innerHTML = `
+      <div class="card">
+        <h3>🧾 កម្មង់ថ្មី</h3>
+        <div class="form-row">
+          <input id="tableName" placeholder="លេខតុ (ឧ. តុ 1)" />
+        </div>
+      </div>
+      <div class="card">
+        <h3>ជ្រើសម្ហូប</h3>
+        <div class="grid" id="menuGrid">
+          ${menuCache.map(m => `
+            <div class="menu-item-card" onclick="addToCart('${m._id}', '${m.name.replace(/'/g, "\\'")}', ${m.price})">
+              <strong>${m.name}</strong><br/>
+              <span style="color: var(--muted); font-size: 13px;">${m.category?.name || ''}</span><br/>
+              <span style="color: var(--primary); font-weight: 700;">$${m.price}</span>
+            </div>
+          `).join('') || 'មិនទាន់មានម៉ឺនុយ'}
+        </div>
+      </div>
+      <div class="card">
+        <h3>🛒 កន្ត្រក</h3>
+        <div id="cartList">${renderCartHtml()}</div>
+        <div style="margin-top:12px; font-weight:700; font-size:16px;">សរុប: $<span id="cartTotal">${cartTotal().toFixed(2)}</span></div>
+        <button class="btn" style="margin-top:12px; width:100%;" onclick="submitOrder()">✅ បញ្ជូនកម្មង់</button>
+        <div id="orderMsg"></div>
+      </div>
+    `;
+  } catch (e) {
+    main.innerHTML = `<div class="card error-msg">${e.message}</div>`;
+  }
+}
+
+function cartTotal() {
+  return cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+function renderCartHtml() {
+  if (cart.length === 0) return '<p style="color: var(--muted);">កន្ត្រកទទេ</p>';
+  return cart.map((item, idx) => `
+    <div class="cart-item">
+      <span>${item.name} x ${item.quantity}</span>
+      <span>
+        $${(item.price * item.quantity).toFixed(2)}
+        <button class="btn secondary" style="padding:4px 8px; margin-left:8px;" onclick="removeFromCart(${idx})">✕</button>
+      </span>
+    </div>
+  `).join('');
+}
+
+function addToCart(menuId, name, price) {
+  const existing = cart.find(i => i.menuId === menuId);
+  if (existing) existing.quantity++;
+  else cart.push({ menuId, name, price, quantity: 1 });
+  document.getElementById('cartList').innerHTML = renderCartHtml();
+  document.getElementById('cartTotal').textContent = cartTotal().toFixed(2);
+}
+
+function removeFromCart(idx) {
+  cart.splice(idx, 1);
+  document.getElementById('cartList').innerHTML = renderCartHtml();
+  document.getElementById('cartTotal').textContent = cartTotal().toFixed(2);
+}
+
+async function submitOrder() {
+  const table = document.getElementById('tableName').value;
+  const msgEl = document.getElementById('orderMsg');
+  if (!table) { msgEl.innerHTML = '<div class="error-msg">សូមបញ្ចូលលេខតុ</div>'; return; }
+  if (cart.length === 0) { msgEl.innerHTML = '<div class="error-msg">សូមជ្រើសម្ហូបយ៉ាងហោចណាស់មួយ</div>'; return; }
+  try {
+    await api('/order', {
+      method: 'POST',
+      body: {
+        table,
+        items: cart.map(i => ({ menu: i.menuId, quantity: i.quantity }))
+      }
+    });
+    cart = [];
+    msgEl.innerHTML = '<div class="success-msg">✅ កម្មង់ជោគជ័យ!</div>';
+    setTimeout(() => renderTakeOrder(), 800);
+  } catch (e) {
+    msgEl.innerHTML = `<div class="error-msg">${e.message}</div>`;
+  }
+}
+
+// ---------- Orders list ----------
+async function renderOrdersList() {
+  const main = document.getElementById('mainContent');
+  try {
+    const res = await api('/order');
+    const orders = res.data;
+    main.innerHTML = `
+      <div class="card">
+        <h3>📋 កម្មង់ទាំងអស់</h3>
+        <table>
+          <thead><tr><th>តុ</th><th>សរុប</th><th>ស្ថានភាព</th><th>ពេលវេលា</th><th>សកម្មភាព</th></tr></thead>
+          <tbody>
+            ${orders.map(o => `
+              <tr>
+                <td>${o.table}</td>
+                <td>$${o.totalPrice}</td>
+                <td><span class="badge ${o.status}">${statusLabel(o.status)}</span></td>
+                <td>${new Date(o.createdAt).toLocaleString()}</td>
+                <td>${renderOrderActions(o)}</td>
+              </tr>
+            `).join('') || '<tr><td colspan="5">មិនទាន់មានកម្មង់</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (e) {
+    main.innerHTML = `<div class="card error-msg">${e.message}</div>`;
+  }
+}
+
+function statusLabel(s) {
+  return { pending: 'កំពុងរង់ចាំ', confirmed: 'បានបញ្ជាក់', completed: 'បានបង់ប្រាក់', cancelled: 'បានលុបចោល' }[s] || s;
+}
+
+function renderOrderActions(o) {
+  if (o.status === 'completed' || o.status === 'cancelled') return '-';
+  let html = '';
+  if (o.status === 'pending') html += `<button class="btn secondary" onclick="setOrderStatus('${o._id}', 'confirmed')">បញ្ជាក់</button> `;
+  if (o.status === 'confirmed') html += `<button class="btn" onclick="setOrderStatus('${o._id}', 'completed')">បង់ប្រាក់រួច</button> `;
+  html += `<button class="btn danger" onclick="setOrderStatus('${o._id}', 'cancelled')">លុបចោល</button>`;
+  return html;
+}
+
+async function setOrderStatus(id, status) {
+  try {
+    await api(`/order/${id}/status`, { method: 'PATCH', body: { status } });
+    renderOrdersList();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// ---------- Init ----------
+if (TOKEN && CURRENT_USER) {
+  document.getElementById('apiUrl').value = API_URL;
+  showApp();
+} else {
+  document.getElementById('apiUrl').value = API_URL;
+}
+</script>
+</body>
+</html>
