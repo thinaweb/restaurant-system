@@ -129,7 +129,7 @@
 <div id="loginScreen">
   <div class="card">
     <h2>🍽️ ប្រព័ន្ធភោជនីយដ្ឋាន</h2>
-    <div class="form-row" style="flex-direction: column;​ display:none;">
+    <div class="form-row" style="flex-direction: column;​display:none;">
       <input id="apiUrl" placeholder="API URL" value="http://localhost:3000/api" />
     </div>
     <div class="form-row" style="flex-direction: column;">
@@ -138,7 +138,7 @@
     </div>
     <button class="btn" style="width:100%" onclick="login()">ចូលប្រើប្រាស់</button>
     <div id="loginError" class="error-msg"></div>
-    <p class="api-config" style="display:none;">ត្រូវប្រាកដថា backend server កំពុង run (npm start)</p>
+    <p class="api-config"​​ style="display:none;>ត្រូវប្រាកដថា backend server កំពុង run (npm start)</p>
   </div>
 </div>
 
@@ -170,6 +170,8 @@ let activeTab = 'dashboard';
 let menuCache = [];
 let categoryCache = [];
 let cart = []; // { menuId, name, price, quantity }
+let selectedDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD, defaults to today
+let selectedOrderDate = new Date().toISOString().split('T')[0];
 
 // ---------- API helper ----------
 async function api(path, options = {}) {
@@ -264,12 +266,19 @@ function goTo(tab) {
 async function renderDashboard() {
   const main = document.getElementById('mainContent');
   try {
-    const res = await api('/report/daily');
+    const res = await api('/report/daily?date=' + selectedDate);
     const d = res.data;
+    const isToday = selectedDate === new Date().toISOString().split('T')[0];
     main.innerHTML = `
       <div class="card">
-        <h2>📊 សរុបប្រចាំថ្ងៃ — ${d.date}</h2>
-        <div class="grid">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <h2 style="margin:0;">📊 សរុបប្រចាំថ្ងៃ — ${d.date}${isToday ? ' (ថ្ងៃនេះ)' : ''}</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="date" id="reportDatePicker" value="${selectedDate}" style="width:auto;" onchange="changeReportDate(this.value)" />
+            ${!isToday ? `<button class="btn secondary" onclick="changeReportDate(new Date().toISOString().split('T')[0])">ថ្ងៃនេះ</button>` : ''}
+          </div>
+        </div>
+        <div class="grid" style="margin-top:16px;">
           <div class="stat-box">
             <div class="value">$${d.totalRevenue.toLocaleString()}</div>
             <div class="label">ចំណូលសរុប</div>
@@ -299,6 +308,11 @@ async function renderDashboard() {
   } catch (e) {
     main.innerHTML = `<div class="card error-msg">មិនអាចផ្ទុកទិន្នន័យបាន: ${e.message}</div>`;
   }
+}
+
+function changeReportDate(newDate) {
+  selectedDate = newDate;
+  renderDashboard();
 }
 
 // ---------- Menu management ----------
@@ -522,10 +536,21 @@ async function renderOrdersList() {
   const main = document.getElementById('mainContent');
   try {
     const res = await api('/order');
-    const orders = res.data;
+    const allOrders = res.data;
+    const orders = allOrders.filter(o => {
+      const orderDate = new Date(o.createdAt).toISOString().split('T')[0];
+      return orderDate === selectedOrderDate;
+    });
+    const isToday = selectedOrderDate === new Date().toISOString().split('T')[0];
     main.innerHTML = `
       <div class="card">
-        <h3>📋 កម្មង់ទាំងអស់</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <h3 style="margin:0;">📋 កម្មង់ — ${selectedOrderDate}${isToday ? ' (ថ្ងៃនេះ)' : ''}</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="date" id="orderDatePicker" value="${selectedOrderDate}" style="width:auto;" onchange="changeOrderDate(this.value)" />
+            ${!isToday ? `<button class="btn secondary" onclick="changeOrderDate(new Date().toISOString().split('T')[0])">ថ្ងៃនេះ</button>` : ''}
+          </div>
+        </div>
         <table>
           <thead><tr><th>តុ</th><th>សរុប</th><th>ស្ថានភាព</th><th>ពេលវេលា</th><th>សកម្មភាព</th></tr></thead>
           <tbody>
@@ -537,7 +562,7 @@ async function renderOrdersList() {
                 <td>${new Date(o.createdAt).toLocaleString()}</td>
                 <td>${renderOrderActions(o)}</td>
               </tr>
-            `).join('') || '<tr><td colspan="5">មិនទាន់មានកម្មង់</td></tr>'}
+            `).join('') || '<tr><td colspan="5">មិនមានកម្មង់នៅថ្ងៃនេះ</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -545,6 +570,11 @@ async function renderOrdersList() {
   } catch (e) {
     main.innerHTML = `<div class="card error-msg">${e.message}</div>`;
   }
+}
+
+function changeOrderDate(newDate) {
+  selectedOrderDate = newDate;
+  renderOrdersList();
 }
 
 function statusLabel(s) {
