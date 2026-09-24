@@ -129,8 +129,8 @@
 <div id="loginScreen">
   <div class="card">
     <h2>🍽️ ប្រព័ន្ធភោជនីយដ្ឋាន</h2>
-    <div class="form-row" style="flex-direction: column;">
-      
+    <div class="form-row" style="flex-direction: column;​ display:none;">
+      <input id="apiUrl" placeholder="API URL" value="http://localhost:3000/api" />
     </div>
     <div class="form-row" style="flex-direction: column;">
       <input id="loginEmail" placeholder="Email" type="email" />
@@ -138,7 +138,7 @@
     </div>
     <button class="btn" style="width:100%" onclick="login()">ចូលប្រើប្រាស់</button>
     <div id="loginError" class="error-msg"></div>
-    
+    <p class="api-config" style="display:none;">ត្រូវប្រាកដថា backend server កំពុង run (npm start)</p>
   </div>
 </div>
 
